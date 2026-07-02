@@ -22,7 +22,7 @@ const queryClient = new QueryClient();
 function RootNavigator() {
   const router = useRouter();
   const segments = useSegments();
-  const { session, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   const [fontsLoaded, fontError] = useFonts({
     NotoSansJP_400Regular,
@@ -41,12 +41,12 @@ function RootNavigator() {
       segments[0] === 'session' ||
       segments[0] === 'audit';
 
-    if (session && !inAuthGroup) {
+    if (isAuthenticated && !inAuthGroup) {
       router.replace('/dashboard');
-    } else if (!session && inAuthGroup) {
+    } else if (!isAuthenticated && inAuthGroup) {
       router.replace('/');
     }
-  }, [session, loading, fontsLoaded, fontError, segments]);
+  }, [isAuthenticated, loading, fontsLoaded, fontError, segments]);
 
   if (loading || (!fontsLoaded && !fontError)) {
     return null;

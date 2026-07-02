@@ -9,11 +9,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@/utils/supabase';
+import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { useAuth } from '@/context/AuthContext';
 import LogoSvg from '../assets/vermilion-box-v2.svg';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { continueAsGuest } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
@@ -22,6 +24,12 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    if (!isSupabaseConfigured) {
+      setError(
+        'Accounts are not configured on this deployment. Practice locally instead — your progress is saved on this device.',
+      );
+      return;
+    }
     if (!email || !password) {
       setError('Please enter your email and password.');
       return;
@@ -159,6 +167,20 @@ export default function LoginScreen() {
                   Sign In →
                 </Text>
               )}
+            </TouchableOpacity>
+
+            {/* Local-only practice — no account required */}
+            <TouchableOpacity
+              className="mt-4 w-full items-center rounded-xl border border-brand-ink px-6 py-4"
+              onPress={continueAsGuest}
+              activeOpacity={0.85}
+            >
+              <Text
+                className="text-sm font-semibold text-brand-stone"
+                style={{ fontFamily: 'NotoSansJP_500Medium' }}
+              >
+                Practice without an account →
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

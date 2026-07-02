@@ -8,6 +8,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  applyAudit,
+  meanSessionLatency,
+  sessionsInRange,
+} from '@/domain/learner';
+import { updateProfile, useLearnerProfile } from '@/store/learnerStore';
+
 const EFFORT_LABELS: Record<number, string> = {
   1: 'Too easy',
   2: 'Very easy',
@@ -27,17 +34,36 @@ function effortAccent(n: number): string {
   return '#D94032';             // vermilion
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function calibrationMessage(rating: number): string {
+  if (rating <= 4) return 'Too comfortable — next week introduces more new vocabulary.';
+  if (rating <= 6) return 'You are in the productive-struggle zone. The mix stays as it is.';
+  if (rating <= 8) return 'Running hot — next week shifts toward familiar tokens.';
+  return 'Overloaded — next week pulls back sharply on new material.';
+}
+
 export default function AuditScreen() {
   const router = useRouter();
+  const profile = useLearnerProfile();
   const [effortRating, setEffortRating] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = () => {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - WEEK_MS);
+  const twoWeeksAgo = new Date(now.getTime() - 2 * WEEK_MS);
+  const thisWeek = profile ? sessionsInRange(profile, weekAgo, now) : [];
+  const lastWeek = profile ? sessionsInRange(profile, twoWeeksAgo, weekAgo) : [];
+  const thisWeekLatency = meanSessionLatency(thisWeek);
+  const lastWeekLatency = meanSessionLatency(lastWeek);
+
+  const handleSubmit = async () => {
     if (effortRating === null) return;
+    await updateProfile((p) => applyAudit(p, effortRating));
     setSubmitted(true);
   };
 
-  if (submitted) {
+  if (submitted && effortRating !== null) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-sumi px-6">
         {/* Decorative confetti strip */}
@@ -62,7 +88,7 @@ export default function AuditScreen() {
           className="mt-3 text-center text-sm leading-relaxed text-brand-stone"
           style={{ fontFamily: 'NotoSansJP_400Regular' }}
         >
-          Your upcoming week has been adjusted based{'\n'}on your effort rating.
+          {calibrationMessage(effortRating)}
         </Text>
         <TouchableOpacity
           className="mt-10 rounded-xl bg-brand-vermilion px-10 py-5"
@@ -100,6 +126,50 @@ export default function AuditScreen() {
         >
           Rate the overall effort level of your practice this week. Your answer calibrates next week's difficulty mix.
         </Text>
+
+        {/* ── This week's numbers ── */}
+        <View className="mt-6 rounded-xl border border-brand-ink bg-brand-tatami px-5 py-4">
+          <Text
+            className="text-xs font-bold uppercase tracking-widest text-brand-vermilion"
+            style={{ fontFamily: 'NotoSansJP_700Bold' }}
+          >
+            This Week
+          </Text>
+          <View className="mt-3 flex-row justify-between">
+            <View>
+              <Text
+                className="text-xl font-bold text-brand-warm"
+                style={{ fontFamily: 'IBMPlexMono_400Regular' }}
+              >
+                {thisWeek.length}
+              </Text>
+              <Text
+                className="text-xs text-brand-stone"
+                style={{ fontFamily: 'NotoSansJP_400Regular' }}
+              >
+                sessions ({lastWeek.length} last week)
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text
+                className="text-xl font-bold text-brand-warm"
+                style={{ fontFamily: 'IBMPlexMono_400Regular' }}
+              >
+                {thisWeekLatency !== null ? `${Math.round(thisWeekLatency)} ms` : '—'}
+              </Text>
+              <Text
+                className="text-xs text-brand-stone"
+                style={{ fontFamily: 'NotoSansJP_400Regular' }}
+              >
+                {lastWeekLatency !== null && thisWeekLatency !== null
+                  ? thisWeekLatency <= lastWeekLatency
+                    ? `${Math.round(lastWeekLatency - thisWeekLatency)} ms faster than last week`
+                    : `${Math.round(thisWeekLatency - lastWeekLatency)} ms slower than last week`
+                  : 'mean response latency'}
+              </Text>
+            </View>
+          </View>
+        </View>
 
         {/* ── Rating grid ── */}
         <Text

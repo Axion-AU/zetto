@@ -4,9 +4,11 @@ import type { TranscriptEntry } from '@/types';
 
 interface TranscriptViewProps {
   entry: TranscriptEntry;
+  /** Tap-to-translate handler for words in AI turns (JIT translation). */
+  onWordPress?: (surface: string) => void;
 }
 
-export function TranscriptView({ entry }: TranscriptViewProps) {
+export function TranscriptView({ entry, onWordPress }: TranscriptViewProps) {
   const isAI = entry.speaker === 'ai';
 
   return (
@@ -49,8 +51,12 @@ export function TranscriptView({ entry }: TranscriptViewProps) {
             </>
           );
 
-          return word.onPress ? (
-            <TouchableOpacity key={word.id} onPress={word.onPress} activeOpacity={0.5}>
+          return isAI && onWordPress ? (
+            <TouchableOpacity
+              key={word.id}
+              onPress={() => onWordPress(word.surface)}
+              activeOpacity={0.5}
+            >
               <View>{wordContents}</View>
             </TouchableOpacity>
           ) : (

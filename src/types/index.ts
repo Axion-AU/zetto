@@ -7,7 +7,6 @@ export interface TranscriptWord {
   furigana?: string;
   /** Whether this word contains a deliberate Socratic error. */
   isError?: boolean;
-  onPress?: () => void;
 }
 
 export interface TranscriptEntry {
