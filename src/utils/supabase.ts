@@ -3,8 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!;
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+/**
+ * True when real Supabase credentials are present. Without them the client
+ * below points at a placeholder project: auth calls will fail at request
+ * time, but the module can be imported (and the app statically exported)
+ * without crashing — required for CI builds that have no secrets.
+ */
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 /**
  * Platform-aware storage adapter.
@@ -33,11 +41,15 @@ const webStorage = {
 
 const storage = Platform.OS === 'web' ? webStorage : AsyncStorage;
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    storage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+export const supabase = createClient(
+  supabaseUrl ?? 'https://placeholder.supabase.co',
+  supabaseKey ?? 'placeholder-key',
+  {
+    auth: {
+      storage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
   },
-});
+);
